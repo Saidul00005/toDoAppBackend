@@ -25,3 +25,17 @@ exports.postAddToDo = async (req, res) => {
     res.status(400).json({ error: err.message })
   }
 }
+
+exports.getToDoList = async (req, res) => {
+
+  try {
+    const toDos = await ToDo.find();
+
+    res.status(200).json({ Message: 'Fetch Success.[Todo items]', data: toDos })
+
+  } catch (err) {
+    console.error("Error[Fetch ToDos]:", err.message)
+    res.status(500).json({ error: 'Failure[Fetch to do items.]' })
+  }
+
+}
