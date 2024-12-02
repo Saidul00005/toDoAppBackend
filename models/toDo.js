@@ -35,6 +35,10 @@ const ToDoSchema = new mongoose.Schema({
     type: Date,
     default: Date.now, // Automatically set the creation date to now
   },
+  toDoEditionDate: {
+    type: Date,
+    default: null, // Initially null, only set on edit
+  },
 });
 
 

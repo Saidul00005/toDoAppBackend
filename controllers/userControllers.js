@@ -1,4 +1,5 @@
 const ToDo = require("../models/toDo")
+const mongoose = require('mongoose');
 
 exports.postAddToDo = async (req, res) => {
   try {
@@ -39,3 +40,42 @@ exports.getToDoList = async (req, res) => {
   }
 
 }
+
+exports.putEditToDo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate, toDoEditionDate } = req.body; // Extract fields to update from the request body
+
+    if (!id) {
+      return res.status(400).json({ error: "To-do ID is required." });
+    }
+
+    const _id = mongoose.Types.ObjectId(id);
+
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res.status(400).json({ error: "Invalid To-do ID." });
+    }
+
+    const updatedToDo = await ToDo.findByIdAndUpdate(
+      _id,
+      {
+        toDoName,
+        toDoDescription,
+        toDoACT,
+        toDoStatus,
+        toDoCreationDate,
+        toDoEditionDate
+      },
+      { new: true, runValidators: true } // Return the updated document and run schema validation
+    );
+
+    if (!updatedToDo) {
+      return res.status(404).json({ error: "To-do item not found." });
+    }
+
+    res.status(200).json({ message: "To-do item updated successfully", data: updatedToDo });
+  } catch (err) {
+    console.error("Error [Edit To-Do]:", err.message);
+    res.status(500).json({ error: "Failed to update to-do item." });
+  }
+};

@@ -5,5 +5,6 @@ const userRouter = express.Router();
 
 userRouter.post('/addToDo', userController.postAddToDo)
 userRouter.get('/toDoList', userController.getToDoList)
+userRouter.put(`/editToDo/:id`, userController.putEditToDo)
 
 module.exports = userRouter;
