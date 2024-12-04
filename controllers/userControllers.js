@@ -43,18 +43,18 @@ exports.getToDoList = async (req, res) => {
 
 exports.putEditToDo = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { _id } = req.params;
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate, toDoEditionDate } = req.body; // Extract fields to update from the request body
 
-    if (!id) {
+    if (!_id) {
       return res.status(400).json({ error: "To-do ID is required." });
     }
 
-    const _id = mongoose.Types.ObjectId(id);
+    // const _id = new mongoose.Types.ObjectId(`${id}`);
 
-    if (!mongoose.Types.ObjectId.isValid(_id)) {
-      return res.status(400).json({ error: "Invalid To-do ID." });
-    }
+    // if (!mongoose.Types.ObjectId.isValid(_id)) {
+    //   return res.status(400).json({ error: "Invalid To-do ID." });
+    // }
 
     const updatedToDo = await ToDo.findByIdAndUpdate(
       _id,
