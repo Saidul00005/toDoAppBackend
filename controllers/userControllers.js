@@ -1,11 +1,10 @@
 const ToDo = require("../models/toDo")
-const mongoose = require('mongoose');
 
 exports.postAddToDo = async (req, res) => {
   try {
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate } = req.body;
 
-    console.log(toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate);
+    // console.log(toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate);
 
     if (!toDoName || !toDoDescription || !toDoACT || !toDoStatus || !toDoCreationDate) {
       return res.status(400).json({ error: 'All fields are required.' });
@@ -78,4 +77,59 @@ exports.putEditToDo = async (req, res) => {
     console.error("Error [Edit To-Do]:", err.message);
     res.status(500).json({ error: "Failed to update to-do item." });
   }
-};
+}
+
+exports.patchUpdateToDoStatus = async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const { toDoStatus, toDoEditionDate } = req.body; // Only extract the status field
+
+    if (!_id) {
+      return res.status(400).json({ error: "To-do ID is required." });
+    }
+
+    if (!toDoStatus) {
+      return res.status(400).json({ error: "To-do status is required." });
+    }
+
+    if (!toDoEditionDate) {
+      return res.status(400).json({ error: "To-do Edition date is required." });
+    }
+
+    const updatedToDo = await ToDo.findByIdAndUpdate(
+      _id,
+      { toDoStatus, toDoEditionDate },
+      { new: true, runValidators: true } // Return the updated document and run schema validation
+    );
+
+    if (!updatedToDo) {
+      return res.status(404).json({ error: "To-do item not found." });
+    }
+
+    res.status(200).json({ message: "To-do status updated successfully", data: updatedToDo });
+  } catch (err) {
+    console.error("Error [Update To-Do Status]:", err.message);
+    res.status(500).json({ error: "Failed to update to-do status." });
+  }
+}
+
+exports.deleteDeleteToDo = async (req, res) => {
+  try {
+    const { _id } = req.params;
+
+    if (!_id) {
+      return res.status(400).json({ error: "To-do ID is required." });
+    }
+
+    const deletedToDo = await ToDo.findByIdAndDelete(_id);
+
+    if (!deletedToDo) {
+      return res.status(404).json({ error: "To-do item not found." });
+    }
+
+    res.status(200).json({ message: "To-do item deleted successfully", data: deletedToDo });
+  } catch (err) {
+    console.error("Error [Delete To-Do]:", err.message);
+    res.status(500).json({ error: "Failed to delete to-do item." });
+  }
+}
