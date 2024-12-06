@@ -4,7 +4,7 @@ exports.postAddToDo = async (req, res) => {
   try {
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate } = req.body;
 
-    // console.log(toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate);
+    const userId = req.session.user.id;
 
     if (!toDoName || !toDoDescription || !toDoACT || !toDoStatus || !toDoCreationDate) {
       return res.status(400).json({ error: 'All fields are required.' });
@@ -16,13 +16,15 @@ exports.postAddToDo = async (req, res) => {
       toDoACT,
       toDoStatus,
       toDoCreationDate,
-    })
+      userId,
+    });
 
     const savedToDo = await toDo.save();
-    res.status(201).json({ message: 'To-do item saved successfully', data: savedToDo });
+    return res.status(201).json({ message: 'To-do item saved successfully', data: savedToDo });
+
   } catch (err) {
-    console.error("Error [To do item Save]", err.message)
-    res.status(400).json({ error: err.message })
+    console.error("Error [To do item Save]", err.message);
+    return res.status(400).json({ error: err.message });
   }
 }
 

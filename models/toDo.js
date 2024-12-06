@@ -39,6 +39,10 @@ const ToDoSchema = new mongoose.Schema({
     type: Date,
     default: null, // Initially null, only set on edit
   },
+  userId: {
+    type: String,
+    required: [true, 'User ID is required']
+  },
 });
 
 
