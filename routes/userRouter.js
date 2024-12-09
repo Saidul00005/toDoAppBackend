@@ -1,13 +1,11 @@
 const express = require('express');
-const userController = require('../controllers/userControllers');
-import { checkSession } from '../middleware/checkSession'
+const userController = require('../controllers/userController');
 
 const userRouter = express.Router();
 
-userRouter.post('/addToDo', checkSession, userController.postAddToDo)
-userRouter.get('/toDoList', userController.getToDoList)
-userRouter.put(`/editToDo/:_id`, userController.putEditToDo)
-userRouter.patch(`/editToDoStatus/:_id`, userController.patchUpdateToDoStatus)
-userRouter.delete(`/deleteToDo/:_id`, userController.deleteDeleteToDo)
+userRouter.post('/signUp', userController.postSignUp)
+userRouter.post('/login', userController.postLogIn)
+
+
 
 module.exports = userRouter;

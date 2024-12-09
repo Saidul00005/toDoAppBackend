@@ -1,20 +1,35 @@
-require('./utils/databaseUtil')
-const express = require('express')
-const userRouter = require('./routes/userRouter')
-require('dotenv').config()
+require('./utils/databaseUtil'); // Initialize database connection
+require('dotenv').config(); // Load environment variables
+
+const express = require('express');
 const cors = require('cors');
+const userRouter = require('./routes/userRouter');
+const toDoRouter = require('./routes/toDoRouter');
 
+const app = express();
 
-const app = express()
+// CORS Configuration
+const corsOptions = {
+  origin: "http://your-frontend-url.com", // Replace with your frontend's URL
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+};
+app.use(cors(corsOptions));
 
+// Middleware
+app.use(express.json());
 
-app.use(cors())
+// Routes
+app.use(userRouter);
+app.use(toDoRouter);
 
-app.use(express.json())
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+});
 
-app.use(userRouter)
-
-const port = process.env.PORT
+// Start Server
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Server is on port ${port}`)
-})
+  console.log(`Server is running on port ${port}`);
+});
