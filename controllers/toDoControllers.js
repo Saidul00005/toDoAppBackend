@@ -1,13 +1,21 @@
-const ToDo = require("../models/toDo")
+import ToDo from "../models/toDo.js";
+import User from "../models/user.js";
+import checkSession from "../middleware/checkSession.js";
 
-exports.postAddToDo = async (req, res) => {
+export const postAddToDo = [checkSession, async (req, res) => {
   try {
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate } = req.body;
+    console.log(req.user.id)
 
-    const userId = req.session.user.id;
+    const userId = req.user.id;
 
     if (!toDoName || !toDoDescription || !toDoACT || !toDoStatus || !toDoCreationDate) {
       return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found. Invalid user ID.' });
     }
 
     const toDo = new ToDo({
@@ -23,15 +31,16 @@ exports.postAddToDo = async (req, res) => {
     return res.status(201).json({ message: 'To-do item saved successfully', data: savedToDo });
 
   } catch (err) {
-    console.error("Error [To do item Save]", err.message);
+    console.error("Error [To do item Save]:", err.message);
     return res.status(400).json({ error: err.message });
   }
-}
+}];
 
-exports.getToDoList = async (req, res) => {
+export const getToDoList = [checkSession, async (req, res) => {
 
   try {
-    const toDos = await ToDo.find();
+    const userId = req.user.id;
+    const toDos = await ToDo.find({ userId });
 
     res.status(200).json({ Message: 'Fetch Success.[Todo items]', data: toDos })
 
@@ -40,12 +49,13 @@ exports.getToDoList = async (req, res) => {
     res.status(500).json({ error: 'Failure[Fetch to do items.]' })
   }
 
-}
+}]
 
-exports.putEditToDo = async (req, res) => {
+export const putEditToDo = [checkSession, async (req, res) => {
   try {
     const { _id } = req.params;
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate, toDoEditionDate } = req.body; // Extract fields to update from the request body
+    const userId = req.user.id;
 
     if (!_id) {
       return res.status(400).json({ error: "To-do ID is required." });
@@ -57,6 +67,19 @@ exports.putEditToDo = async (req, res) => {
     //   return res.status(400).json({ error: "Invalid To-do ID." });
     // }
 
+    if (!toDoName || !toDoDescription || !toDoACT || !toDoStatus || !toDoCreationDate || !toDoEditionDate) {
+      return res.status(400).json({ error: "All items are required." });
+    }
+
+    const toDo = await ToDo.findById(_id);
+    if (!toDo) {
+      return res.status(404).json({ error: "To-do item not found." });
+    }
+
+    if (toDo.userId.toString() !== userId) {
+      return res.status(403).json({ error: "You can only delete your own to-do items." });
+    }
+
     const updatedToDo = await ToDo.findByIdAndUpdate(
       _id,
       {
@@ -65,7 +88,8 @@ exports.putEditToDo = async (req, res) => {
         toDoACT,
         toDoStatus,
         toDoCreationDate,
-        toDoEditionDate
+        toDoEditionDate,
+        userId
       },
       { new: true, runValidators: true } // Return the updated document and run schema validation
     );
@@ -79,12 +103,13 @@ exports.putEditToDo = async (req, res) => {
     console.error("Error [Edit To-Do]:", err.message);
     res.status(500).json({ error: "Failed to update to-do item." });
   }
-}
+}]
 
-exports.patchUpdateToDoStatus = async (req, res) => {
+export const patchUpdateToDoStatus = [checkSession, async (req, res) => {
   try {
     const { _id } = req.params;
-    const { toDoStatus, toDoEditionDate } = req.body; // Only extract the status field
+    const { toDoStatus, toDoEditionDate } = req.body;
+    const userId = req.user.id;  // Access authenticated user ID from session
 
     if (!_id) {
       return res.status(400).json({ error: "To-do ID is required." });
@@ -98,40 +123,56 @@ exports.patchUpdateToDoStatus = async (req, res) => {
       return res.status(400).json({ error: "To-do Edition date is required." });
     }
 
+    // Find the to-do item by ID and check if it belongs to the authenticated user
+    const toDo = await ToDo.findById(_id);
+
+    if (!toDo) {
+      return res.status(404).json({ error: "To-do item not found." });
+    }
+
+    if (toDo.userId.toString() !== userId) {
+      return res.status(403).json({ error: "You can only update your own to-do items." });
+    }
+
+    // Update the to-do status
     const updatedToDo = await ToDo.findByIdAndUpdate(
       _id,
       { toDoStatus, toDoEditionDate },
-      { new: true, runValidators: true } // Return the updated document and run schema validation
+      { new: true, runValidators: true }
     );
-
-    if (!updatedToDo) {
-      return res.status(404).json({ error: "To-do item not found." });
-    }
 
     res.status(200).json({ message: "To-do status updated successfully", data: updatedToDo });
   } catch (err) {
     console.error("Error [Update To-Do Status]:", err.message);
     res.status(500).json({ error: "Failed to update to-do status." });
   }
-}
+}]
 
-exports.deleteDeleteToDo = async (req, res) => {
+export const deleteDeleteToDo = [checkSession, async (req, res) => {
   try {
     const { _id } = req.params;
+    const userId = req.user.id;  // Access authenticated user ID from session
 
     if (!_id) {
       return res.status(400).json({ error: "To-do ID is required." });
     }
 
-    const deletedToDo = await ToDo.findByIdAndDelete(_id);
-
-    if (!deletedToDo) {
+    // Find the to-do item by ID and check if it belongs to the authenticated user
+    const toDo = await ToDo.findById(_id);
+    if (!toDo) {
       return res.status(404).json({ error: "To-do item not found." });
     }
+
+    if (toDo.userId.toString() !== userId) {
+      return res.status(403).json({ error: "You can only delete your own to-do items." });
+    }
+
+    // Delete the to-do item
+    const deletedToDo = await ToDo.findByIdAndDelete(_id);
 
     res.status(200).json({ message: "To-do item deleted successfully", data: deletedToDo });
   } catch (err) {
     console.error("Error [Delete To-Do]:", err.message);
     res.status(500).json({ error: "Failed to delete to-do item." });
   }
-}
+}]

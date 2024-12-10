@@ -1,11 +1,12 @@
-require('./utils/databaseUtil'); // Initialize database connection
-require('dotenv').config(); // Load environment variables
+import './utils/databaseUtil.js'; // Initialize database connection
+import dotenv from 'dotenv';
 
-const express = require('express');
-const cors = require('cors');
-const userRouter = require('./routes/userRouter');
-const toDoRouter = require('./routes/toDoRouter');
+import express from 'express';
+import cors from 'cors';
+import userRouter from './routes/userRouter.js';
+import toDoRouter from './routes/toDoRouter.js';
 
+dotenv.config(); // Load environment variables
 const app = express();
 
 // CORS Configuration

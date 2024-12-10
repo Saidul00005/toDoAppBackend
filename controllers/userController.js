@@ -1,7 +1,8 @@
-const User = require("../models/user");
-const bcrypt = require("bcrypt");
+import jwt from 'jsonwebtoken';
+import User from "../models/user.js";
+import bcrypt from "bcrypt";
 
-exports.postSignUp = async (req, res) => {
+export const postSignUp = async (req, res) => {
   try {
     // console.log(req.body)
     const { userEmail, password } = req.body;
@@ -37,7 +38,7 @@ exports.postSignUp = async (req, res) => {
 };
 
 
-exports.postLogIn = async (req, res) => {
+export const postLogIn = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -46,23 +47,32 @@ exports.postLogIn = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required." });
     }
 
-    // Find user by email
+    // Find the user by email
     const user = await User.findOne({ userEmail: email });
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Compare password with hashed password in DB
+    // Compare the provided password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Return user details (exclude sensitive fields like password)
-    res.status(200).json({
-      id: user._id,
-      email: user.userEmail,
-      //name: user.name  
+    // Generate JWT token if credentials are valid
+    const token = jwt.sign(
+      { id: user._id, email: user.userEmail }, // Payload: user id and email
+      process.env.JWT_SECRET,  // Use a secret key from environment variables
+      { expiresIn: '24h' } // Token expiration (1 day)
+    );
+
+    // Return user details and JWT token (exclude password)
+    const { password: _, ...userWithoutPassword } = user.toObject();
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,   // Include the token in the response
+      user: userWithoutPassword,  // Send user details except password
     });
   } catch (err) {
     console.error("Error during login:", err.message);
