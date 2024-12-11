@@ -5,7 +5,8 @@ import checkSession from "../middleware/checkSession.js";
 export const postAddToDo = [checkSession, async (req, res) => {
   try {
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate } = req.body;
-    console.log(req.user.id)
+
+    // console.log(req.user.id)
 
     const userId = req.user.id;
 

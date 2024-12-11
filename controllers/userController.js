@@ -1,15 +1,21 @@
 import jwt from 'jsonwebtoken';
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
+import validator from "validator";
 
 export const postSignUp = async (req, res) => {
   try {
-    // console.log(req.body)
+
     const { userEmail, password } = req.body;
 
     if (!userEmail || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
+
+    if (!validator.isEmail(userEmail)) {
+      return res.status(400).json({ error: "Invalid email format." });
+    }
+
 
     const existingUser = await User.findOne({ userEmail });
     if (existingUser) {
@@ -24,6 +30,7 @@ export const postSignUp = async (req, res) => {
       password: hashedPassword,
     });
 
+    // console.log(user)
 
     const savedUser = await user.save();
 
@@ -63,7 +70,7 @@ export const postLogIn = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, email: user.userEmail }, // Payload: user id and email
       process.env.JWT_SECRET,  // Use a secret key from environment variables
-      { expiresIn: '24h' } // Token expiration (1 day)
+      { expiresIn: '1h' } // Token expiration ( 1 hour)
     );
 
     // Return user details and JWT token (exclude password)

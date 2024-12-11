@@ -3,7 +3,10 @@ import jwt from 'jsonwebtoken';
 const checkSession = async (req, res, next) => {
   try {
     // Get the token from the request header (Authorization header)
+
     const token = req.headers.authorization?.split(' ')[1]; // Expecting "Bearer <token>"
+
+    // console.log(token)
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized, no token provided.' });
@@ -15,7 +18,7 @@ const checkSession = async (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({ error: 'Unauthorized, invalid token.' });
     }
-    console.log(decoded)
+    // console.log(decoded)
     // Attach the decoded user info to the request object
     req.user = decoded;
 
