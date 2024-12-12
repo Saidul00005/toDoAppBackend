@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
-import validator from "validator";
 
 export const postSignUp = async (req, res) => {
   try {
@@ -11,11 +10,6 @@ export const postSignUp = async (req, res) => {
     if (!userEmail || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
-
-    if (!validator.isEmail(userEmail)) {
-      return res.status(400).json({ error: "Invalid email format." });
-    }
-
 
     const existingUser = await User.findOne({ userEmail });
     if (existingUser) {
