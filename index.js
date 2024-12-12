@@ -9,11 +9,26 @@ import toDoRouter from './routes/toDoRouter.js';
 dotenv.config(); // Load environment variables
 const app = express();
 
+// Disable the "X-Powered-By" header
+app.disable("x-powered-by");
+
+const allowedOrigins = [process.env.FRONTEND_URL];
+
 // CORS Configuration
 const corsOptions = {
-  origin: "http://your-frontend-url.com", // Replace with your frontend's URL
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) { // Allow no origin in certain cases like Postman
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  maxAge: 600, // 10 minutes preflight cache duration
 };
+
 app.use(cors(corsOptions));
 
 // Middleware

@@ -66,23 +66,64 @@ export const postLogIn = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Generate JWT token if credentials are valid
+    // Generate JWT access token
     const token = jwt.sign(
       { id: user._id, email: user.userEmail }, // Payload: user id and email
       process.env.JWT_SECRET,  // Use a secret key from environment variables
-      { expiresIn: '1h' } // Token expiration ( 1 hour)
+      { expiresIn: '1h' } // Token expiration (1 hour)
     );
 
-    // Return user details and JWT token (exclude password)
+    // Generate JWT refresh token
+    const refreshToken = jwt.sign(
+      { id: user._id, email: user.userEmail }, // Payload: user id and email
+      process.env.JWT_REFRESH_SECRET, // Separate secret key for refresh tokens
+      { expiresIn: '7d' } // Token expiration (7 days)
+    );
+
+    // Save the refresh token in the database
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    // Return user details and tokens (exclude password)
     const { password: _, ...userWithoutPassword } = user.toObject();
 
     return res.status(200).json({
       message: "Login successful",
-      token,   // Include the token in the response
+      token,   // Include the access token in the response
+      refreshToken,  // Include the refresh token in the response
       user: userWithoutPassword,  // Send user details except password
     });
   } catch (err) {
     console.error("Error during login:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+export const postRefreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token is required." });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(403).json({ error: "Invalid or expired refresh token." });
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: user._id, email: user.userEmail },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    return res.status(200).json({ accessToken: newAccessToken });
+  } catch (err) {
+    console.error("Error during token refresh:", err.message);
+    res.status(403).json({ error: "Invalid or expired refresh token." });
   }
 };

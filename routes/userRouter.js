@@ -5,5 +5,6 @@ const userRouter = express.Router();
 
 userRouter.post('/signUp', userController.postSignUp)
 userRouter.post('/login', userController.postLogIn)
+userRouter.post('/refresh-token', userController.postRefreshToken);
 
 export default userRouter;

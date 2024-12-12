@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
     match: [
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
       "Please enter a valid email address (e.g., user@example.com).",
-    ], // Matches the email pattern in your Input component
+    ],
   },
   password: {
     type: String,
@@ -20,10 +20,16 @@ const UserSchema = new mongoose.Schema({
       validator: function (value) {
         return /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\d\s]).{8,}$/.test(value);
       },
-      message: "Password must be at least 8 characters long and contain at least one letter, one number, and one special character (e.g., !, @, #, $, etc.).",
-    }, // Matches the password pattern in your Input component
+      message:
+        "Password must be at least 8 characters long and contain at least one letter, one number, and one special character (e.g., !, @, #, $, etc.).",
+    },
+  },
+  refreshToken: {
+    type: String,
+    default: null, // Default to null if no refresh token is set
   },
 });
 
 const User = mongoose.model('User', UserSchema);
 export default User;
+
