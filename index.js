@@ -5,12 +5,16 @@ import express from 'express';
 import cors from 'cors';
 import userRouter from './routes/userRouter.js';
 import toDoRouter from './routes/toDoRouter.js';
+import helmet from 'helmet';
 
 dotenv.config(); // Load environment variables
 const app = express();
 
 // Disable the "X-Powered-By" header
 app.disable("x-powered-by");
+
+// Use Helmet for setting secure HTTP headers
+app.use(helmet());
 
 const allowedOrigins = [process.env.FRONTEND_URL];
 
