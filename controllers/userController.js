@@ -199,11 +199,13 @@ export const getUserProfile = async (req, res) => {
     }
 
     // Fetch the user by ID
-    const user = await User.findById(userId).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry"); // Exclude sensitive fields
+    const user = await User.findById(userId).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry -createdAt -updatedAt"); // Exclude sensitive fields
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
+
+    console.log(`User profile fetched for userId: ${userId}`);
 
     return res.status(200).json({ message: "User profile fetched successfully.", data: user });
   } catch (err) {
