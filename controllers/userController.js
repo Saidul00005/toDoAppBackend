@@ -187,3 +187,79 @@ export const getVerifyEmail = async (req, res) => {
       .json({ error: "Server error during email verification." });
   }
 };
+
+
+// Get user profile details
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    // Fetch the user by ID
+    const user = await User.findById(userId).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry"); // Exclude sensitive fields
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.status(200).json({ message: "User profile fetched successfully.", data: user });
+  } catch (err) {
+    console.error("Error [Get User Profile]:", err.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// Update user profile
+export const putUpdateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id; // Extract the authenticated user ID
+
+    const { name, city, country, password } = req.body; // Destructure the updated fields
+
+    // Check if user ID is present
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    // Validate required fields
+    if (!name || !city || !country) {
+      return res.status(400).json({ error: "Name, city, and country are required." });
+    }
+
+    // Fields to update
+    const updatedFields = { name, city, country };
+
+    // Hash and update password only if it's provided
+    if (password) {
+      if (password.trim() === "") {
+        return res.status(400).json({ error: "Password cannot be empty." });
+      }
+
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      updatedFields.password = hashedPassword;
+    }
+
+    // Update user in the database
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updatedFields }, // Use $set to avoid accidentally replacing the document
+      { new: true, runValidators: true } // Return the updated document
+    ).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry"); // Exclude sensitive fields
+
+    // If user not found
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "User profile updated successfully.", data: updatedUser });
+  } catch (err) {
+    console.error("Error [Update User Profile]:", err.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
