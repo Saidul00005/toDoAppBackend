@@ -1,7 +1,7 @@
 import ToDo from "../models/toDo.js";
 import User from "../models/user.js";
 
-export const postAddToDo = [async (req, res) => {
+export const postAddToDo = async (req, res) => {
   try {
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate } = req.body;
 
@@ -34,9 +34,9 @@ export const postAddToDo = [async (req, res) => {
     console.error("Error [To do item Save]:", err.message);
     return res.status(400).json({ error: err.message });
   }
-}];
+}
 
-export const getToDoList = [async (req, res) => {
+export const getToDoList = async (req, res) => {
 
   try {
     const userId = req.user.id;
@@ -49,9 +49,9 @@ export const getToDoList = [async (req, res) => {
     res.status(500).json({ error: 'Failure[Fetch to do items.]' })
   }
 
-}]
+}
 
-export const putEditToDo = [async (req, res) => {
+export const putEditToDo = async (req, res) => {
   try {
     const { _id } = req.params;
     const { toDoName, toDoDescription, toDoACT, toDoStatus, toDoCreationDate, toDoEditionDate } = req.body; // Extract fields to update from the request body
@@ -103,9 +103,9 @@ export const putEditToDo = [async (req, res) => {
     console.error("Error [Edit To-Do]:", err.message);
     res.status(500).json({ error: "Failed to update to-do item." });
   }
-}]
+}
 
-export const patchUpdateToDoStatus = [async (req, res) => {
+export const patchUpdateToDoStatus = async (req, res) => {
   try {
     const { _id } = req.params;
     const { toDoStatus, toDoEditionDate } = req.body;
@@ -146,9 +146,9 @@ export const patchUpdateToDoStatus = [async (req, res) => {
     console.error("Error [Update To-Do Status]:", err.message);
     res.status(500).json({ error: "Failed to update to-do status." });
   }
-}]
+}
 
-export const deleteDeleteToDo = [async (req, res) => {
+export const deleteDeleteToDo = async (req, res) => {
   try {
     const { _id } = req.params;
     const userId = req.user.id;  // Access authenticated user ID from session
@@ -175,4 +175,4 @@ export const deleteDeleteToDo = [async (req, res) => {
     console.error("Error [Delete To-Do]:", err.message);
     res.status(500).json({ error: "Failed to delete to-do item." });
   }
-}]
+}

@@ -192,7 +192,7 @@ export const getVerifyEmail = async (req, res) => {
 // Get user profile details
 export const getUserProfile = async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized access." });
@@ -204,8 +204,6 @@ export const getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
-
-    console.log(`User profile fetched for userId: ${userId}`);
 
     return res.status(200).json({ message: "User profile fetched successfully.", data: user });
   } catch (err) {
@@ -219,49 +217,50 @@ export const putUpdateUserProfile = async (req, res) => {
   try {
     const userId = req.user?.id; // Extract the authenticated user ID
 
-    const { name, city, country, password } = req.body; // Destructure the updated fields
-
     // Check if user ID is present
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized access." });
     }
 
+    const { password, name, city, country } = req.body; // Destructure the updated fields and password
+
     // Validate required fields
+    if (!password) {
+      return res.status(400).json({ error: "Password is required." });
+    }
     if (!name || !city || !country) {
       return res.status(400).json({ error: "Name, city, and country are required." });
     }
 
-    // Fields to update
-    const updatedFields = { name, city, country };
+    // Fetch the user by ID to get the existing password
+    const user = await User.findById(userId);
 
-    // Hash and update password only if it's provided
-    if (password) {
-      if (password.trim() === "") {
-        return res.status(400).json({ error: "Password cannot be empty." });
-      }
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
 
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      updatedFields.password = hashedPassword;
+    // Compare provided password with the existing password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Incorrect password." });
     }
 
     // Update user in the database
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: updatedFields }, // Use $set to avoid accidentally replacing the document
+      { $set: { name, city, country } }, // Use $set to avoid accidentally replacing the document
       { new: true, runValidators: true } // Return the updated document
-    ).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry"); // Exclude sensitive fields
+    ).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry -createdAt -updatedAt"); // Exclude sensitive fields
 
     // If user not found
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    return res
-      .status(200)
-      .json({ message: "User profile updated successfully.", data: updatedUser });
+    return res.status(200).json({ message: "User profile updated successfully.", data: updatedUser });
   } catch (err) {
     console.error("Error [Update User Profile]:", err.message);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 };
