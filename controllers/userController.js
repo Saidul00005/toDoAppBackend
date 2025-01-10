@@ -5,9 +5,9 @@ import bcrypt from "bcrypt";
 export const postSignUp = async (req, res) => {
   try {
 
-    const { userEmail, password } = req.body;
+    const { name, city, country, userEmail, password, verificationToken } = req.body;
 
-    if (!userEmail || !password) {
+    if (!name || !city || !country || !userEmail || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -19,19 +19,26 @@ export const postSignUp = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    const verificationTokenExpiry = new Date(Date.now() + 3600000); // 1 hour expiry time
+
     const user = new User({
+      name,
+      city,
+      country,
       userEmail,
       password: hashedPassword,
+      verificationToken,
+      verificationTokenExpiry
     });
 
     // console.log(user)
 
     const savedUser = await user.save();
 
-    // Exclude password from response
-    const { password: _, ...userWithoutPassword } = savedUser.toObject();
+    // Exclude password and verification token from response
+    const { password: _, verificationToken: __, ...userWithoutSensitiveData } = savedUser.toObject();
 
-    return res.status(201).json({ message: "User saved successfully", data: userWithoutPassword });
+    return res.status(201).json({ message: "User saved successfully", data: userWithoutSensitiveData });
   } catch (err) {
     console.error("Error [User Save]", err.message);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -52,6 +59,11 @@ export const postLogIn = async (req, res) => {
     const user = await User.findOne({ userEmail: email });
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password." });
+    }
+
+    // Check if the user's email is verified
+    if (!user.isEmailVerified) {
+      return res.status(400).json({ error: "Email not verified. Please verify your email before logging in." });
     }
 
     // Compare the provided password with the stored hashed password
@@ -78,14 +90,14 @@ export const postLogIn = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Return user details and tokens (exclude password)
-    const { password: _, ...userWithoutPassword } = user.toObject();
+    // Exclude sensitive fields (password, isEmailVerified, verificationToken, verificationTokenExpiry)
+    const { password: _, isEmailVerified: __, verificationToken: ___, verificationTokenExpiry: ____, ...userWithoutSensitiveData } = user.toObject();
 
     return res.status(200).json({
       message: "Login successful",
       token,   // Include the access token in the response
       refreshToken,  // Include the refresh token in the response
-      user: userWithoutPassword,  // Send user details except password
+      user: userWithoutSensitiveData,  // Send user details except password
     });
   } catch (err) {
     console.error("Error during login:", err.message);
@@ -119,5 +131,136 @@ export const postRefreshToken = async (req, res) => {
   } catch (err) {
     console.error("Error during token refresh:", err.message);
     res.status(403).json({ error: "Invalid or expired refresh token." });
+  }
+};
+
+
+export const getVerifyEmail = async (req, res) => {
+  try {
+    const { token, email } = req.query;
+
+    // Validate query parameters
+    if (!token || !email) {
+      return res
+        .status(400)
+        .json({ error: "Token and Email are required for email verification." });
+    }
+
+    // Fetch user by email
+    const user = await User.findOne({ userEmail: email });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (user.isEmailVerified) {
+      return res
+        .status(400)
+        .json({ error: "Email is already verified." });
+    }
+
+    // Check if the verification token has expired
+    if (user.verificationTokenExpiry && new Date() > user.verificationTokenExpiry) {
+      return res.status(400).json({ error: "Verification token has expired." });
+    }
+
+    // Verify the token
+    if (user.verificationToken !== token) {
+      return res
+        .status(400)
+        .json({ error: "Invalid or expired verification token." });
+    }
+
+    // Mark email as verified
+    user.isEmailVerified = true;
+    user.verificationToken = null; // Clear the token
+    user.verificationTokenExpiry = null; // Clear the verification token expiry
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ message: "Email verified successfully. You can now log in." });
+  } catch (err) {
+    console.error("Error during email verification:", err.message);
+    return res
+      .status(500)
+      .json({ error: "Server error during email verification." });
+  }
+};
+
+
+// Get user profile details
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    // Fetch the user by ID
+    const user = await User.findById(userId).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry -createdAt -updatedAt"); // Exclude sensitive fields
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.status(200).json({ message: "User profile fetched successfully.", data: user });
+  } catch (err) {
+    console.error("Error [Get User Profile]:", err.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// Update user profile
+export const putUpdateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id; // Extract the authenticated user ID
+
+    // Check if user ID is present
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized access." });
+    }
+
+    const { password, name, city, country } = req.body; // Destructure the updated fields and password
+
+    // Validate required fields
+    if (!password) {
+      return res.status(400).json({ error: "Password is required." });
+    }
+    if (!name || !city || !country) {
+      return res.status(400).json({ error: "Name, city, and country are required." });
+    }
+
+    // Fetch the user by ID to get the existing password
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Compare provided password with the existing password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Incorrect password." });
+    }
+
+    // Update user in the database
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { name, city, country } }, // Use $set to avoid accidentally replacing the document
+      { new: true, runValidators: true } // Return the updated document
+    ).select("-password -refreshToken -isEmailVerified -verificationToken -verificationTokenExpiry -createdAt -updatedAt"); // Exclude sensitive fields
+
+    // If user not found
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.status(200).json({ message: "User profile updated successfully.", data: updatedUser });
+  } catch (err) {
+    console.error("Error [Update User Profile]:", err.message);
+    return res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 };
