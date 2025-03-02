@@ -40,15 +40,52 @@ export const getToDoList = async (req, res) => {
 
   try {
     const userId = req.user.id;
-    const toDos = await ToDo.find({ userId });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    res.status(200).json({ Message: 'Fetch Success.[Todo items]', data: toDos })
+    const [toDos, total] = await Promise.all([
+      ToDo.find({ userId })
+        .sort({ toDoCreationDate: -1 })
+        .skip(skip)
+        .limit(limit),
+      ToDo.countDocuments({ userId })
+    ]);
+
+    res.status(200).json({
+      message: 'Fetch Success.[Todo items]',
+      data: toDos,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page < Math.ceil(total / limit)
+    })
 
   } catch (err) {
     console.error("Error[Fetch ToDos]:", err.message)
     res.status(500).json({ error: 'Failure[Fetch to do items.]' })
   }
 
+}
+
+export const getSearchToDos = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const searchQuery = req.query.q;
+
+    if (!searchQuery) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const results = await ToDo.find({
+      userId,
+      toDoName: { $regex: searchQuery, $options: 'i' }
+    })
+
+    res.status(200).json({ message: 'Search successful', data: results });
+  } catch (err) {
+    console.error("Error[Search ToDos]:", err.message);
+    res.status(500).json({ error: 'Search failed' });
+  }
 }
 
 export const putEditToDo = async (req, res) => {

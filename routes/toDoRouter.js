@@ -10,5 +10,6 @@ toDoRouter.get('/toDoList', checkSession, toDoController.getToDoList)
 toDoRouter.put(`/editToDo/:_id`, checkSession, toDoController.putEditToDo)
 toDoRouter.patch(`/editToDoStatus/:_id`, checkSession, toDoController.patchUpdateToDoStatus)
 toDoRouter.delete(`/deleteToDo/:_id`, checkSession, toDoController.deleteDeleteToDo)
+toDoRouter.get('/search', checkSession, toDoController.getSearchToDos);
 
 export default toDoRouter;

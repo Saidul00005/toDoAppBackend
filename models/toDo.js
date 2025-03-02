@@ -45,6 +45,8 @@ const ToDoSchema = new mongoose.Schema({
   },
 });
 
+ToDoSchema.index({ userId: 1, toDoCreationDate: -1 });
+ToDoSchema.index({ userId: 1, toDoName: 'text' });
 
 const ToDo = mongoose.model('ToDo', ToDoSchema);
 
